@@ -51,6 +51,10 @@ If you want to use the raw SVG icons as assets, you can publish them using:
 php artisan vendor:publish --tag=blade-material-symbols-600 --force
 ```
 
+```bash
+composer require richarddobron/blade-google-material-symbols-600
+```
+
 ## Configuration
 
 Blade Material Symbols also offers the ability to use features from Blade Icons like default classes, default attributes, etc. If you'd like to configure these, publish the `blade-gms.php` config file:
