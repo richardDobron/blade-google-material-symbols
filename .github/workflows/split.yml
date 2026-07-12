@@ -1,0 +1,43 @@
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - { local: 'packages/100', remote: 'blade-google-material-symbols-100' }
+          - { local: 'packages/200', remote: 'blade-google-material-symbols-200' }
+          - { local: 'packages/300', remote: 'blade-google-material-symbols-300' }
+          - { local: 'packages/400', remote: 'blade-google-material-symbols-400' }
+          - { local: 'packages/500', remote: 'blade-google-material-symbols-500' }
+          - { local: 'packages/600', remote: 'blade-google-material-symbols-600' }
+          - { local: 'packages/700', remote: 'blade-google-material-symbols-700' }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install splitsh-lite
+        run: |
+          curl -sL https://github.com/splitsh/lite/releases/download/v1.0.1/lite_linux_amd64.tar.gz | tar xz
+          sudo mv splitsh-lite /usr/local/bin/splitsh-lite
+
+      - name: Split and push
+        env:
+          SPLIT_GH_TOKEN: ${{ secrets.SPLIT_GITHUB_TOKEN }}
+          LOCAL_PREFIX: ${{ matrix.package.local }}
+          REMOTE_REPO: ${{ matrix.package.remote }}
+          REPO_OWNER: ${{ github.repository_owner }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          git config --local --unset-all http.https://github.com/.extraheader || true
+          REMOTE_URL="https://x-access-token:${SPLIT_GH_TOKEN}@github.com/${REPO_OWNER}/${REMOTE_REPO}.git"
+          SHA=$(splitsh-lite --prefix="${LOCAL_PREFIX}")
+          git remote add split "${REMOTE_URL}" 2>/dev/null || true
+          git push split "${SHA}:refs/heads/main" --force
+          git push split "${SHA}:refs/tags/${TAG_NAME}" --force

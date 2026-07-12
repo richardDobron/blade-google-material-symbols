@@ -1,0 +1,2 @@
+echo "Syncing submodules..."
+git submodule update --init --recursive
