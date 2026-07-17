@@ -1,3 +1,5 @@
+name: Split and publish packages
+
 on:
   push:
     tags:
