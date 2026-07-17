@@ -1,0 +1,125 @@
+name: Update Material Symbols
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      current: ${{ steps.current.outputs.version }}
+      latest: ${{ steps.latest.outputs.version }}
+      update: ${{ steps.compare.outputs.update }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set current version
+        id: current
+        run: |
+          cd material-symbols
+          git fetch --tags --force
+          echo "version=$(git describe --tags --abbrev=0)" >> "$GITHUB_OUTPUT"
+
+      - name: Set latest version
+        id: latest
+        run: |
+          cd material-symbols
+          git fetch origin --tags --force
+          echo "version=$(git tag --sort=-version:refname | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          if [ "${{ steps.current.outputs.version }}" = "${{ steps.latest.outputs.version }}" ]; then
+            echo "update=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  update:
+    needs: check-version
+    if: needs.check-version.outputs.update == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Update submodule
+        run: |
+          cd material-symbols
+          git fetch origin --tags --force
+          git checkout "${{ needs.check-version.outputs.latest }}"
+
+          cd ..
+          git add material-symbols
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Generate icons
+        shell: bash
+        run: |
+          set -e
+
+          for dir in $PWD/packages/*; do
+            [ -d "$dir" ] || continue
+
+            echo "Processing $dir"
+
+            (
+              cd "$dir"
+
+              composer install \
+                --prefer-dist \
+                --no-interaction \
+                --no-progress
+
+              php vendor/bin/blade-icons-generate
+            )
+          done
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add .
+          
+          if git diff --cached --quiet; then
+          echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.changed == 'true'
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: .
+          message: |
+            feat: update Material Symbols to ${{ needs.check-version.outputs.latest }}
+
+      - name: Release
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create \
+            "${{ needs.check-version.outputs.latest }}" \
+            --title "${{ needs.check-version.outputs.latest }}" \
+            --generate-notes
