@@ -23,6 +23,10 @@ For a full list of available icons you can preview them at [Material Symbols](ht
 
 As Material Symbols offers a lot of different styles, you can choose a specific one by using the corresponding package.  
 
+```bash
+composer require richarddobron/blade-google-material-symbols-600
+```
+
 ## Usage
 
 Icons can be used as self-closing Blade components which will be compiled to SVG icons:
@@ -49,10 +53,6 @@ If you want to use the raw SVG icons as assets, you can publish them using:
 
 ```bash
 php artisan vendor:publish --tag=blade-material-symbols-600 --force
-```
-
-```bash
-composer require richarddobron/blade-google-material-symbols-600
 ```
 
 ## Configuration
