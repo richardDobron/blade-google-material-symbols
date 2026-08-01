@@ -99,8 +99,6 @@ jobs:
         id: changes
         run: |
           git add .
-          git tag "${{ needs.check-version.outputs.latest }}"
-          git push origin "${{ needs.check-version.outputs.latest }}"
           
           if git diff --cached --quiet; then
           echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -115,6 +113,8 @@ jobs:
           add: .
           message: |
             feat: update Material Symbols to ${{ needs.check-version.outputs.latest }}
+          tag: ${{ needs.check-version.outputs.latest }}
+          push: true
 
       - name: Release
         if: steps.changes.outputs.changed == 'true'
