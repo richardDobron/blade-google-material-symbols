@@ -115,6 +115,7 @@ jobs:
             feat: update Material Symbols to ${{ needs.check-version.outputs.latest }}
           tag: ${{ needs.check-version.outputs.latest }}
           push: true
+          github_token: ${{ secrets.SPLIT_GITHUB_TOKEN }}
 
       - name: Release
         if: steps.changes.outputs.changed == 'true'
